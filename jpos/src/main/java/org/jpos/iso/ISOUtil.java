@@ -1605,4 +1605,43 @@ public class ISOUtil {
         int digitGroups = (int) (Math.log10(size)/Math.log10(1024));
         return new DecimalFormat("#,##0.#").format(size/Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
+    
+    //https://gist.github.com/jen20/906db194bd97c14d91df
+    //If the message is EBCDIC, the standard hexdump will have al non printable data
+    //Here if you pass Charset.forName("IBM1047") for the charSet param, the data will be 
+    //printable. It basically does the ebcdic to ascii
+    //e.g. standard jpos hexdump for F0F1F2F3F4F5F6 
+    //0000  F0 F1 F3 F4 F5 F6                                 ......
+    //Using the new hexdump with EBCDIC charset passed in would result in 
+    //000000:  F0 F1 F3 F4 F5 F6                                 |  013456
+    public static String hexDump(byte[] array, int offset, int length, Charset charSet) {
+        final int width = 16;
+
+        StringBuilder builder = new StringBuilder();
+
+        for (int rowOffset = offset; rowOffset < offset + length; rowOffset += width) {
+            builder.append(String.format("%06d:  ", rowOffset));
+
+            for (int index = 0; index < width; index++) {
+                if (rowOffset + index < array.length) {
+                    builder.append(String.format("%02x ", array[rowOffset + index]).toUpperCase());
+                }
+                else {
+                    builder.append("   ");
+                }
+            }
+
+            if (rowOffset < array.length) {
+                int asciiWidth = Math.min(width, array.length - rowOffset);
+                builder.append("  |  ");
+                builder.append(new String(array, rowOffset, asciiWidth, charSet).replaceAll("\r\n", " ")
+                        .replaceAll("\n", " "));
+            }
+
+            builder.append(String.format("%n"));
+        }
+
+        return builder.toString();
+    }
+
 }
